@@ -1,16 +1,16 @@
 ﻿class hashTable{
 	; User methods
-	hasKey(k){
-		return this[6].call(k, "Cdecl ptr") ? true : false
+	hasKey(byref k){
+		return this[6].call(&k, "Cdecl ptr") ? true : false
 	}
-	hasVal(v){
-		return this[9].call(v, "cdecl ptr") ? true : false
+	hasVal(byref v){
+		return this[9].call(&v, "cdecl ptr") ? true : false
 	}
-	valGetKey(v){
-		return this[9].call(v, "cdecl str")
+	valGetKey(byref v){
+		return this[9].call(&v, "cdecl str")
 	}
-	delete(k){
-		return this[4].call(k, "Cdecl")
+	delete(byref k){
+		return this[4].call(&k, "Cdecl")
 	}
 	traverse(udfn){
 		; accepts function name, func / bound func obj.
@@ -44,8 +44,10 @@
 		this.maxLoad:=newMax
 		return 
 	}
-	multPut(byref keys, byref vals, del:="`n"){	; Consider another name. If change, also change in comment in initBoundFuncs()
-		return this[10].call(keys, "wstr", vals, "wstr", del, "cdecl")
+	multPut(keys,vals, del:="`n",isByref:=false){	; Consider another name. If change, also change in comment in initBoundFuncs()
+		if isByref ; For very large input, pass keys and vals by address and specify true. Improves performance.
+			return this[10].call("ptr", keys, "ptr", vals, "wstr", del, "cdecl")
+		return this[10].call("wstr", keys, "wstr", vals, "wstr", del, "cdecl")
 	}
 	rehash(newLength:=0){
 		; "Manual" rehash. Typical usage, when removed many values, shrink the table.
@@ -134,11 +136,11 @@
 		__new(ht){
 			ObjRawSet(this,hashTable,ht)
 		}
-		__set(k, v){
-			return this[hashTable][5].call(k, "wstr", v, "Cdecl")
+		__set(byref k, byref v){
+			return this[hashTable][5].call(&k, "ptr", &v, "Cdecl")
 		}
-		__get(k){
-			return this[hashTable][6].call(k, "Cdecl str")
+		__get(byref k){
+			return this[hashTable][6].call(&k, "Cdecl str")
 		}
 		__call(f, p*){
 			return this[hashTable][f](p*)
@@ -161,6 +163,7 @@
 		return new hashTable.router(this) ; returns a "router" object, which has a reference to the new hashTable. Use all methods on the returned router object.
 	}
 	initBin(){
+		; Can be freed via freeAllBins() (you shouldn't)
 		; See c source
 		local pnewTable,pdestroy,prehash,remove,pput,pget,pfindKey,ptraverse,pfindVal,pmultPut,j,raw
 		if A_PtrSize == 4 {
@@ -211,13 +214,13 @@
 		;	pfindVal	(09)	(use hasVal() or valGetKey(value))
 		;	pmultPut	(10)	(use multPut())
 		this[2] 	:= func("dllCall").bind(hashTable[2],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Cdecl")															; destroy
-		this[3] 	:= func("dllCall").bind(hashTable[3],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Cdecl ptr")														; rehash
-		this[4]		:= func("dllCall").bind(hashTable[4],  "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; , key, "Cdecl")								; remove
-		this[5]		:= func("dllCall").bind(hashTable[5],  "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; , key, wstr, val, "Cdecl")					; put
-		this[6]		:= func("dllCall").bind(hashTable[6],  "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; , key, "Cdecl str")							; get
+		this[3] 	:= func("dllCall").bind(hashTable[3],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Cdecl Ptr")														; rehash
+		this[4]		:= func("dllCall").bind(hashTable[4],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Ptr") 			; , key, "Cdecl")								; remove
+		this[5]		:= func("dllCall").bind(hashTable[5],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Ptr") 			; , key, ptr, val, "Cdecl")						; put
+		this[6]		:= func("dllCall").bind(hashTable[6],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Ptr") 			; , key, "Cdecl str")							; get
 		this[8]		:= func("dllCall").bind(hashTable[8],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Ptr") 			; this.icbfn/udfn, "uint", cbid, "Cdecl")		; traverse
-		this[9]		:= func("dllCall").bind(hashTable[9],  "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; val, "Cdecl ptr")								; findVal
-		this[10]	:= func("dllCall").bind(hashTable[10], "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; keys, wstr, vals, "Cdecl")					; multPut
+		this[9]		:= func("dllCall").bind(hashTable[9],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Ptr") 			; val, "Cdecl ptr")								; findVal
+		this[10]	:= func("dllCall").bind(hashTable[10], "Ptr", this.table, "Ptr", hashTable.fnLib) 					; keys, ptr, vals, "Cdecl")						; multPut
 		return
 	}
 	newTable(sz){ ; Called by initTable()
@@ -282,7 +285,7 @@
 		} fnLib, *pfnLib;
 		*/
 		
-		local fnLib := hashTable.globalAlloc(5*A_PtrSize) ; Set to 6*A_PtrSize when using db. 
+		local fnLib := hashTable.globalAlloc(5*A_PtrSize) ; Set to 6*A_PtrSize when using db.  Can be freed via freeFnLib() (you shouldn't)
 		local pmalloc:=DllCall("Kernel32.dll\GetProcAddress", "Ptr", DllCall("Kernel32.dll\GetModuleHandle", "Str", "MSVCRT.dll", "Ptr"), "AStr", "malloc", "Ptr")
 		local pfree:=DllCall("Kernel32.dll\GetProcAddress", "Ptr", DllCall("Kernel32.dll\GetModuleHandle", "Str", "MSVCRT.dll", "Ptr"), "AStr", "free", "Ptr")
 		NumPut(pmalloc,					fnLib+0, A_PtrSize*0, "Ptr")
@@ -295,6 +298,7 @@
 		return
 	}
 	initSize(target:=0){
+		; Picks the closest available size greater or equal to target.
 		local k, sz
 		for k, sz in hashTable.arraySizes {
 			if sz >= target {
@@ -334,6 +338,12 @@
 		; Probably never wanted.
 		loop 9
 			hashTable.globalFree(hashTable[A_Index])
+		return
+	}
+	freeFnLib(){
+		; Probably never wanted.
+		this.globalFree(hashTable.fnLib)
+		return
 	}
 	globalAlloc(dwBytes){
 		; URL:
