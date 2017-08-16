@@ -44,7 +44,7 @@
 		this.maxLoad:=newMax
 		return 
 	}
-	multPut(keys,vals, del:="`n",isByref:=false){	; Consider another name. If change, also change in comment in initBoundFuncs()
+	split(keys,vals, del:="`n",isByref:=false){	
 		if isByref ; For very large input, pass keys and vals by address and specify true. Improves performance.
 			return this[10].call("ptr", keys, "ptr", vals, "wstr", del, "cdecl")
 		return this[10].call("wstr", keys, "wstr", vals, "wstr", del, "cdecl")
@@ -212,7 +212,7 @@
 	    ;	pfindKey	(07)	(use HasKey())
 		;	ptraverse	(08)	(use traverse(fn))
 		;	pfindVal	(09)	(use hasVal() or valGetKey(value))
-		;	pmultPut	(10)	(use multPut())
+		;	pmultPut	(10)	(use split())
 		this[2] 	:= func("dllCall").bind(hashTable[2],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Cdecl")															; destroy
 		this[3] 	:= func("dllCall").bind(hashTable[3],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Cdecl Ptr")														; rehash
 		this[4]		:= func("dllCall").bind(hashTable[4],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Ptr") 			; , key, "Cdecl")								; remove
