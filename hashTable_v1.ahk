@@ -16,7 +16,7 @@
 		; accepts function name, func / bound func obj.
 		; binary code address, eg registerCallback("f", "cdecl fast") <- cdecl needed on 32bit ahk. Fast option recommended if ok.
 		local cbid,r,cbfn
-		if type(udfn) == "Integer" 
+		if udfn is Integer
 			cbfn:=udfn
 		else
 			cbfn:=this.icbfn
@@ -52,9 +52,9 @@
 	rehash(newLength:=0){
 		; "Manual" rehash. Typical usage, when removed many values, shrink the table.
 		local table := NumGet(this.table+0,0,"Ptr")
-		if newLength==0
+		if (newLength==0)
 			newLength:= (this.count() / this.maxLoad) * 2 	; If new length is 0, choose the new length to be half way from reaching the maxLoad.
-		if newLength == this.length()						; No need to rehash if already at desired length
+		if (newLength == this.length())						; No need to rehash if already at desired length
 			return
 		this.initSize(newLength)
 		numput(this.nextSize-1, table+0, A_PtrSize*2+16,"uint")
@@ -98,9 +98,12 @@
 		this.traverse(cbfn)
 		return out.str
 	}
+	; toTree not implemented in v1 version, use v2 instead. Or convert:
+	; (also see buildTree() near the end of the class body)
+	/*
 	toTree(opt:=""){
 		local gui,tv,par,cbfn
-		if opt == ""
+		if (opt == "")
 			opt:="R20 w400"
 		gui:=guiCreate(,"Hash table - tree view")
 		
@@ -114,6 +117,7 @@
 		gui.destroy()
 		return
 	}
+	*/
 	; Print tableData struct.
 	printTableData(show:=true){
 		local table := NumGet(this.table+0,0,"Ptr")
@@ -125,7 +129,7 @@
 					.	"numKeys: "		numget(table+0,	A_PtrSize*2+12,"uint")  	"`n" 	; numKeys
 					.	"nextLenInd: "	numget(table+0,	A_PtrSize*2+16,"uint")            	; nextLenInd
 		if show
-			msgbox(outstr,"Hash table data",0x40)
+			msgbox, 0x40, % "Hash table data", % outstr
 		return outstr
 	}
 	;
@@ -166,7 +170,7 @@
 		; Can be freed via freeAllBins() (you shouldn't)
 		; See c source
 		local pnewTable,pdestroy,prehash,remove,pput,pget,pfindKey,ptraverse,pfindVal,pmultPut,j,raw
-		if A_PtrSize == 4 {
+		if (A_PtrSize == 4) {
 			pnewTable	:=	[2203276887,267526380,1009009680,807695499,874806411,539231431,4060086272,608440591,2245525272,2304275648,3036974531,0,4280550537,2311095767,2235855875,823424246,2332224466,2416232195,0,956416643,2347791830,4063765572,608964623,276007192,1328071,4060086272,139137295,2332312457,2302944324,3632863299,1528874115,834887518,2432035776,2425393296,2425393296,2425393296]
 			pdestroy 	:=	[1398167381,2334977155,2336236612,2336498780,608471312,273320732,1165281669,2422669105,747307659,1961723320,649366833,0,2332317067,344522869,72613668,2299024779,1409229844,606898436,1409283465,1979090180,608472031,2333117212,3347255370,1926183169,2298645439,1409229828,608471812,2298514204,2336236612,3296920643,1600019244,2430664541]
 			prehash		:=	[1398167381,2336025731,2337285188,2337547380,71994128,2333622923,4286939452,673479817,23430159,3229810688,608471297,269480468,1284048962,267520036,203703313,1149830795,1149961252,76097572,274136868,3347693701,606356617,20022287,1149960192,9130020,2299809931,1351291991,265454864,60036,608487168,44,612141824,2332592940,4286953788,9274383,3062693888,0,203687111,4278190080,72846102,199,3314089984,2299180815,1200292944,1715440392,1166657925,3380875016,2197815296,3224437442,443,3417247488,16958083,3252259272,3643344353,3071265673,2238119498,837187017,611645394,2500103464,0,606360715,143327747,175491461,33769,7769344,25936265,4168466565,4286917001,1149993589,9130020,2198884491,19670084,740588683,2182076217,4294967125,796185221,1344564363,143392561,2243497099,2417587401,2520205,210311563,72810276,3649690501,1166799477,273713920,956417923,2346152663,604276992,2332317439,2337285188,604276992,2332317439,2200183876,1583037636,2428722527,2520205,2263558281,1642709041,2214592511,3224452292,1566531163,2425393347,2425393296,2425393296]
@@ -301,7 +305,7 @@
 		; Picks the closest available size greater or equal to target.
 		local k, sz
 		for k, sz in hashTable.arraySizes {
-			if sz >= target {
+			if (sz >= target) {
 				this.size:=sz
 				this.nextSize:=k
 				return this.size
@@ -329,8 +333,8 @@
 	traverseCallbackRouter(p*){
 	; int __cdecl (*callbackFn)(unsigned short*,unsigned short*,unsigned int,unsigned int);
 	;traverseCallbackRouter(key,val,cbdi,hash)
-		this:=Object(A_EventInfo)
 		local cbid:=numget(p+0,A_PtrSize,"Uint")
+		this:=Object(A_EventInfo)
 		return this.callbackFunctions[cbid].call(StrGet(numget(p+0,-A_PtrSize,"Ptr")), StrGet(numget(p+0, 0,"Ptr")), numget(p+0, A_PtrSize*2,"Ptr"))
 	}
 	; Memory functions
@@ -364,6 +368,7 @@
 		return h
 	}
 	; Internal tree/print methods.
+	/*
 	buildTree(tv,parents,key,val,h){
 		local id
 		if !parents.haskey(h) {
@@ -374,6 +379,7 @@
 		tv.add(val,id)
 		return 1
 	}
+	*/
 	keyvalPrint(out,key,val,h){
 		out.str.= key . out.del[1] . val . out.del[2]
 		return 1
