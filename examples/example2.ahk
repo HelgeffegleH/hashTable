@@ -1,21 +1,9 @@
 ﻿; for loop example. 
 #include ..\hashTable.ahk
 ht := new hashTable
-keys:="
-(
-key1
-key2
-key3
-key4
-)"
-vals:="
-(
-val1
-val2
-val3
-val4
-)"
-ht.splitAdd(keys,vals)	; split by line break (default)
+keys:="key1|key2|key3|key4"
+vals:="val1|val2|val3|val4"
+ht.splitAdd(keys,vals, "|")	; split by pipe
 ht.forEach("myFunc")	; Note the order of the pairs
 ht.toTree()				; View it.
 exitapp()
