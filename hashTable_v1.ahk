@@ -28,16 +28,6 @@
 		this.callbackFunctions.Delete(cbid)
 		return r
 	}
-	setUpCallbackFunctions(udfn,byref cbfn, byref cbid){
-		if udfn is Integer
-			cbfn:=udfn
-		else
-			cbfn:=this.icbfn
-		if isFunc(udfn) && !isObject(udfn)
-			udfn:=func(udfn)
-		cbid:=this.callbackFunctions.push(udfn)
-		return 
-	}
 	count(){
 		local table := NumGet(this.table+0,0,"Ptr")
 		return numget(table+0,	A_PtrSize*2+12,"uint")
@@ -50,10 +40,12 @@
 		return this.maxLoad
 	}
 	setMaxload(newMax){
+		local prevLoad
 		local table := NumGet(this.table+0,0,"Ptr")
+		prevLoad := this.getMaxload()
 		numput(newMax, table+0,	A_PtrSize*2,"double")
 		this.maxLoad:=newMax
-		return 
+		return prevLoad
 	}
 	splitAdd(keys,vals, del:="`n",constVal:=false,isByref:=false){
 		if (del=="")
@@ -62,33 +54,25 @@
 			return this[constVal ? 11 : 10].call("ptr", keys, "ptr", vals, "wstr",del, "cdecl")
 		return this[constVal ? 11 : 10].call("wstr", keys, "wstr", vals, "wstr",del, "cdecl")
 	}
-	splitAddNoDel(byref keys, byref vals, constVal, isByref){
+	splitAddNoDel(byref keys, byref vals, constVal, isByref){ 	; Call splitAdd, specifing del:="", instead of calling this directly
 		if isByref ; For very large input, pass keys and vals by address and specify true. Improves performance.
 			return this[12].call("ptr", keys, "ptr", vals, "int", (constVal?1:0), "cdecl")
 		return this[12].call("wstr", keys, "wstr", vals, "int", (constVal?1:0), "cdecl")
 	}
 	rehash(newLength:=0){
 		; "Manual" rehash. Typical usage, when removed many values, shrink the table.
+		local prevLength:=this.length()
 		local table := NumGet(this.table+0,0,"Ptr")
-		if (newLength==0)
+		if newLength==0
 			newLength:= (this.count() / this.maxLoad) * 2 	; If new length is 0, choose the new length to be half way from reaching the maxLoad.
-		if (newLength == this.length())						; No need to rehash if already at desired length
-			return
+		if newLength == prevLength						; No need to rehash if already at desired length
+			return prevLength
 		this.initSize(newLength)
 		numput(this.nextSize-1, table+0, A_PtrSize*2+16,"uint")
 		newTable:=this[3].call()
 		NumPut(newTable, this.table+0, 0, "Ptr")
 		this.size:=this.length()	; not really needed.
 		return this.size
-	}
-	wasFreed:=false
-	destroy(){ ; This is automatically called when the last reference to the table is released, eg,  myHashTable:=""
-		if this.wasFreed
-			return
-		this.wasFreed:=true
-		this[2].call()
-		this.globalFree(this.table)
-		this.globalFree(this.icbfn)
 	}
 	; Methods for viewing the table.
 	toString(del1:="`t=`t",del2:="`n"){
@@ -364,7 +348,7 @@
 			NumPut(i,bin+(k-1)*4,"Int")
 		return bin
 	}
-	; For traverse
+	; For forEach/Val
 	callbackFunctions:=[]
 	traverseCallbackRouter(p*){
 	; int __cdecl (*callbackFn)(unsigned short*,unsigned short*,unsigned int,unsigned int,uParams);
@@ -372,6 +356,16 @@
 		local cbid:=numget(p+0,A_PtrSize,"Uint")
 		this:=Object(A_EventInfo)
 		return this.callbackFunctions[cbid].call(StrGet(numget(p+0,-A_PtrSize,"Ptr")), StrGet(numget(p+0, 0,"Ptr")), numget(p+0, A_PtrSize*2,"Ptr"),numget(p+0, A_PtrSize*3,"Ptr")) ; key, val, hash, uParams
+	}
+	setUpCallbackFunctions(udfn,byref cbfn, byref cbid){ ; For forEach/Val
+		if udfn is Integer
+			cbfn:=udfn
+		else
+			cbfn:=this.icbfn
+		if isFunc(udfn) && !isObject(udfn)
+			udfn:=func(udfn)
+		cbid:=this.callbackFunctions.push(udfn)
+		return 
 	}
 	; Memory functions
 	freeAllBins(){
@@ -402,6 +396,16 @@
 		if h:=DllCall("Kernel32.dll\GlobalFree", "Ptr", hMem, "Ptr")
 			throw exception("GlobalFree failed at hMem: " hMem, -2)
 		return h
+	}
+	; Destructor
+	wasFreed:=false
+	destroy(){ ; This is automatically called when the last reference to the table is released, eg,  myHashTable:=""
+		if this.wasFreed
+			return
+		this.wasFreed:=true
+		this[2].call()					; pdestroy
+		this.globalFree(this.table)
+		this.globalFree(this.icbfn)
 	}
 	; Internal tree/print methods.
 	buildTree(tv,parents,key,val,h,uParams){
