@@ -1,29 +1,32 @@
 ﻿#include <windows.h>
 #include "hash.h"
-int __cdecl multPut(tableData** table, pfnLib lib, unsigned short* keys, unsigned short* vals, unsigned short* del){
+int __cdecl multPutConstVal(tableData** table, pfnLib lib, unsigned short* keys, unsigned short* val, unsigned short* del){
 	unsigned int ko, ki;	// key offset, key index
-	unsigned int vo, vi;	// val offset, val index
-	
+		
 	unsigned int bucketN;	// bucket number from findKey
 	unsigned int status;	// status, see findKey()
-	unsigned int i,j;		// loop index, for finding/copying keys/values.
+	unsigned int i,j;		// loop index, for finding/copying keys.
 	
 	node* foundNode;		// node placeholders
 	node* newNode;
-	unsigned short* newKey;	// key, value placeholders
-	unsigned short* newVal;
+	unsigned short* newKey;	// key placeholder.
+	unsigned short* newVal;	// val placeholder.
+	
 	
 	unsigned int dellen=0;	// delimiter string length
-
 	while(del[dellen++]);	// calc delimiter string length
 	dellen--;				// exclude null terminator from strlen.
 	
-	ko=0;					// init offsets and indices
-	vo=0;
+	unsigned int vallen=0;	// value string length
+	while(val[vallen++]);	// calc valu string length
+	vallen--;				// exclude null terminator from strlen.
+	
+	
+	ko=0;					// init offest and index.
 	ki=0;
-	vi=0;
 	
 	int done=0;				// break main loop condition
+	
 	do { // main loop
 		while(1){ 																	// find key
 			while (keys[ko+ki]!=0 && keys[ko+ki]!=del[0]) 							// search for delimiter
@@ -38,37 +41,22 @@ int __cdecl multPut(tableData** table, pfnLib lib, unsigned short* keys, unsigne
 			}
 			ki+= j == 0 ? 1 : j;
 		}
-		while(1){ 																	// find val
-			while (vals[vo+vi]!=0 && vals[vo+vi]!=del[0]) 							// search for delimiter
-				++vi;
-			for(j=0; vals[vo+vi+j]==del[j] && j<dellen && vals[vo+vi+j]!=0; ++j);	// potentially found delimiter
-			if (j==dellen)
-				break;																// delim found
-			if (vals[vo+vi+j]==0){ 													// end of vals.
-				if (done) {
-					vi+= j;
-					break;
-				}
-				return 0; // error, less values than keys.
-			}
-			vi+= j == 0 ? 1 : j;
-		}
-		
+			
 		// ko is start of key, ki is length. same for val, vi vo
 		newKey = lib->pmalloc((ki+1)*2);
 		for (i=0; i<ki; ++i)																	// copy key
 			newKey[i]=keys[ko+i];
 		newKey[ki]=0;																			// null terminate string
 		
-		newVal = lib->pmalloc((vi+1)*2);
-		for (i=0; i<vi; ++i)																	// copy val
-			newVal[i]=vals[vo+i];
-		newVal[vi]=0;																			// null terminate string
+		newVal = lib->pmalloc((vallen+1)*2);
+		for (i=0; i<vallen; ++i)																// copy val
+			newVal[i]=val[i];
+		newVal[vallen]=0;																		// null terminate string
 		
 		ko+=ki+dellen;																			// update offsets for next iteration of main loop
-		vo+=vi+dellen;
+		
 		ki=0;
-		vi=0;
+		
 		foundNode = lib->pfindKey((*table)->nodes,newKey,(*table)->length, &bucketN, &status);	// search for key.
 		if (status==1){ 																		// Key found, just put value.
 			lib->pfree(foundNode->val);

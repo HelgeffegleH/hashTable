@@ -9,7 +9,7 @@ tableData* __cdecl _rehash(tableData** table, pfnLib lib){
 		return 0;
 	newTable->numkeys=(*table)->numkeys;	// number of keys are not changed by rehash
 	unsigned int i;
-	unsigned int k,p;	// k, key strlen, m loop ind
+	unsigned int k,p;	// k, key strlen, p power factor
 	unsigned int hash;	// ∑_i key[i]*pow(31,i), i ∈ [0,k-1] 
 	
 	node* oldNode;	// node place holders
@@ -23,7 +23,7 @@ tableData* __cdecl _rehash(tableData** table, pfnLib lib){
 			newNode->key=oldNode->key;
 			newNode->val=oldNode->val;
 			oldNode=oldNode->next;
-			for (k=0,p=1,hash=0; newNode->key[k]!=0;++k){		// calculate key hash for the new table
+			for (k=0,p=1,hash=0; newNode->key[k]!=0;++k){		// calculate key hash in the new table
 				hash+=newNode->key[k]*p;
 				p*=31;
 			}

@@ -1,7 +1,7 @@
 ﻿#include <windows.h>
 #include "hash.h"
-typedef int __cdecl (*callbackFn)(unsigned short*,unsigned short*,unsigned int,unsigned int);
-int __cdecl traverse(tableData** table, pfnLib lib, callbackFn pcallbackFn,unsigned int cbid){
+typedef int __cdecl (*callbackFn)(unsigned short*,unsigned short*,unsigned int,unsigned int,void*);
+int __cdecl traverse(tableData** table, pfnLib lib, callbackFn pcallbackFn,unsigned int cbid, void* uParams){
 	unsigned int i;		// loop ind (hash number)
 	int exit = 0;		// for exiting after removed key-val pair
 	node* curNode;
@@ -12,7 +12,7 @@ int __cdecl traverse(tableData** table, pfnLib lib, callbackFn pcallbackFn,unsig
 		curNode = (*table)->nodes[i];
 		prevNode=0;
 		while (curNode!=0){													// Visit all nodes in each bucket
-			switch (pcallbackFn(curNode->key,curNode->val,cbid,i)){
+			switch (pcallbackFn(curNode->key,curNode->val,cbid,i,uParams)){
 				case  1:													// continue
 					prevNode=curNode;
 					curNode=curNode->next;
