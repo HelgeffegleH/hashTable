@@ -1,6 +1,6 @@
 ﻿#include <windows.h>
 #include "hash.h"
-tableData* __cdecl _rehash(tableData** table, pfnLib lib){
+tableData* __cdecl rehash(tableData** table, pfnLib lib){
 	unsigned int newLength = (*table)->tableSizes[(*table)->nextLenInd]; 	// get the new length
 	if (newLength == 0)														// fail
 		return 0;
@@ -14,22 +14,21 @@ tableData* __cdecl _rehash(tableData** table, pfnLib lib){
 	
 	node* oldNode;	// node place holders
 	node* nextNode;
+	node* newNode;
 	for (i=0; i<(*table)->length; ++i){	// visit all nodes
 		oldNode = (*table)->nodes[i];
-		
-		while (oldNode!=0) {
-			node* newNode = (node*) lib->pmalloc(sizeof(node));	// make a new node 
-			newNode->next=0;									// copy old values to new node
-			newNode->key=oldNode->key;
-			newNode->val=oldNode->val;
+		if (oldNode==0)
+			continue;
+		do {
+			newNode=oldNode;
+			newNode->next=0;
 			oldNode=oldNode->next;
 			for (k=0,p=1,hash=0; newNode->key[k]!=0;++k){		// calculate key hash in the new table
 				hash+=newNode->key[k]*p;
 				p*=31;
 			}
 			hash =  hash % newLength;							// map to valid index range
-			
-			
+						
 			nextNode = newTable->nodes[hash];					
 			if (nextNode==0){					// place the new node first in the bucket if no nodes there...
 				newTable->nodes[hash]=newNode;
@@ -39,16 +38,7 @@ tableData* __cdecl _rehash(tableData** table, pfnLib lib){
 				nextNode=nextNode->next;
 			nextNode->next=newNode;
 			
-		}
-	}
-	// free old nodes.
-	for (i=0; i<(*table)->length; ++i){
-		oldNode = (*table)->nodes[i]; 
-		while (oldNode!=0){
-			nextNode=oldNode->next;
-			lib->pfree(oldNode);
-			oldNode=nextNode;
-		}
+		} while (oldNode!=0);
 	}
 	// free the old table.
 	lib->pfree((*table)->nodes);

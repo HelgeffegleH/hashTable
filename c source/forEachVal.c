@@ -1,10 +1,11 @@
 ﻿#include <windows.h>
 #include "hash.h"
-typedef int __cdecl (*callbackFn)(unsigned short*,unsigned short*,unsigned int,unsigned int,void*);
-int __cdecl forEachVal(tableData** table, pfnLib lib, unsigned short* val, callbackFn pcallbackFn,unsigned int cbid, void* uParams){
-	unsigned int i,m;
-	int exit=0;
-	node* curNode;
+typedef int __cdecl (*calloutFn)(unsigned short*,unsigned short*,unsigned int,unsigned int,unsigned int,void*);
+int __cdecl forEachVal(tableData** table, pfnLib lib, unsigned short* val, calloutFn pcalloutFn,unsigned int cbid, void* uParams){
+	unsigned int i,m;	// hash code, strcmp index.
+	unsigned int j=0;	// iteration number
+	int exit=0;			// return when 1. Set to 1 when calloutFn returns -2.
+	node* curNode;		// node placeholders.
 	node* prevNode;
 	node* tmpNode;
 	unsigned int k=0;
@@ -19,7 +20,7 @@ int __cdecl forEachVal(tableData** table, pfnLib lib, unsigned short* val, callb
 					goto nomatch;				
 			if (m==k && curNode->val[m]==0){			// match
 				// Switch from traverse.c
-				switch (pcallbackFn(curNode->key,curNode->val,cbid,i,uParams)){
+				switch (pcalloutFn(curNode->key,curNode->val,++j,cbid,i,uParams)){
 					case  1:													// continue
 						prevNode=curNode;
 						curNode=curNode->next;

@@ -9,7 +9,7 @@ int __cdecl hashPut(tableData** table, pfnLib lib, unsigned short* key, unsigned
 	unsigned int vallen=0;	// value string legngt
 	while (val[vallen]!=0)	// calc value string length
 		vallen++;
-	unsigned short* newVal = (unsigned short*) lib->pmalloc((size_t) (vallen + 1) * 2);		// alloc memory for new value
+	unsigned short* newVal = lib->pmalloc( (vallen + 1) * 2);		// alloc memory for new value
 	for (i=0; i<=vallen; ++i)																// copy the value
 		newVal[i]=val[i];
 	foundNode = lib->pfindKey((*table)->nodes,key,(*table)->length, &bucketN, &status);		// search for key.
@@ -22,7 +22,7 @@ int __cdecl hashPut(tableData** table, pfnLib lib, unsigned short* key, unsigned
 	unsigned int keylen=0;																	// calculate key string length
 	while (key[keylen]!=0)
 		keylen++;
-	unsigned short* newKey = (unsigned short*) lib->pmalloc((size_t) (keylen + 1) * 2);		// alloc memory for new key
+	unsigned short* newKey = lib->pmalloc((keylen + 1) * 2);								// alloc memory for new key
 	for (i=0; i<=keylen; ++i)																// copy key
 		newKey[i]=key[i];
 	newNode->next=0;																		// Set up the new node
