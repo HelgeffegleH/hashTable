@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 
 int __cdecl hashRemove(tableData** table, pfnLib lib, unsigned short* key){
 	unsigned int k,m;		// k, key strlen, m loop ind

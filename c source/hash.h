@@ -1,4 +1,5 @@
-﻿typedef struct node node;
+﻿#include <stddef.h>
+typedef struct node node;
 typedef struct tableData tableData;
 // data structure
 struct node {				// each key value pair is contained in a linked list, in their respective bucket (hash)

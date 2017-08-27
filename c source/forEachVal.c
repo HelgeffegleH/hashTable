@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 typedef int __cdecl (*calloutFn)(unsigned short*,unsigned short*,unsigned int,unsigned int,unsigned int,void*);
 int __cdecl forEachVal(tableData** table, pfnLib lib, unsigned short* val, calloutFn pcalloutFn,unsigned int cbid, void* uParams){
 	unsigned int i,m;	// hash code, strcmp index.

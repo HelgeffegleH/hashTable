@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 
 tableData* _newHashTable(unsigned int len,_malloc pmalloc,unsigned int* tableSizes,double maxLoad,unsigned int nextLenInd){
 	unsigned int i;

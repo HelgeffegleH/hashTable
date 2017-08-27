@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 int __cdecl multPutNoDel(tableData** table, pfnLib lib, unsigned short* keys, unsigned short* vals, int constVal){
 	unsigned int bucketN;	// bucket number from findKey
 	unsigned int status;	// status, see findKey()

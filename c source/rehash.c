@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 tableData* __cdecl rehash(tableData** table, pfnLib lib){
 	unsigned int newLength = (*table)->tableSizes[(*table)->nextLenInd]; 	// get the new length
 	if (newLength == 0)														// fail

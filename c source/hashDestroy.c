@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 void __cdecl destroy(tableData** table, pfnLib lib){
 	unsigned int i;	// loop ind.
 	node* oldNode;	// node place holders

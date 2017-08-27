@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 
 unsigned short* __cdecl findVal(tableData** table, pfnLib lib, unsigned short* val){
 	unsigned int i,m;

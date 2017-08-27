@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 tableData* __cdecl clone(tableData** table, pfnLib lib){
 	// newTable is the clone
 	tableData* newTable = lib->pnewHashTable((*table)->length,lib->pmalloc,(*table)->tableSizes,(*table)->maxLoad,(*table)->nextLenInd);	// set up the new table struct to be identical to the table being cloned.

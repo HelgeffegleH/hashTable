@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 
 int __cdecl hashPut(tableData** table, pfnLib lib, unsigned short* key, unsigned short* val ){
 	unsigned int bucketN;	// bucket number from findKey

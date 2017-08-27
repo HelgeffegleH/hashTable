@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 unsigned short* __cdecl hashGet(tableData** table, pfnLib lib, unsigned short* key){
 	unsigned int bucketN;
 	unsigned int status;

@@ -1,5 +1,4 @@
-﻿#include <windows.h>
-#include "hash.h"
+﻿#include "hash.h"
 int __cdecl multPut(tableData** table, pfnLib lib, unsigned short* keys, unsigned short* vals, unsigned short* del){
 	unsigned int ko, ki;	// key offset, key index
 	unsigned int vo, vi;	// val offset, val index
