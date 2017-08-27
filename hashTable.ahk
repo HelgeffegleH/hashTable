@@ -53,7 +53,7 @@
 		return prevLoad
 	}
 	splitAdd(keys,vals, del:="`n",constVal:=false,isByref:=false){
-		if del==""
+		if del == ""
 			return this.splitAddNoDel(keys,vals,constVal,isByref)
 		if isByref ; For very large input, pass keys and vals by address and specify true. Improves performance.
 			return this[constVal ? 11 : 10].call("ptr", keys, "ptr", vals, "wstr",del, "cdecl")
@@ -66,15 +66,16 @@
 	}
 	rehash(newLength:=0){
 		; "Manual" rehash. Typical usage, when removed many values, shrink the table.
+		local newTable
 		local prevLength:=this.length()
 		local table := NumGet(this.table+0,0,"Ptr")
 		if newLength==0
 			newLength:= (this.count() / this.maxLoad) * 2 	; If new length is 0, choose the new length to be half way from reaching the maxLoad.
-		if newLength == prevLength						; No need to rehash if already at desired length
+		if newLength == prevLength							; No need to rehash if already at desired length
 			return prevLength
 		this.initSize(newLength)
 		numput(this.nextSize-1, table+0, A_PtrSize*2+16,"uint")
-		newTable:=this[3].call()
+		newTable:=this[3].call()	; rehash.
 		NumPut(newTable, this.table+0, 0, "Ptr")
 		this.size:=this.length()	; not really needed.
 		return this.size
@@ -123,15 +124,16 @@
 		return
 	}
 	; Print tableData struct.
-	printTableData(show:=true){
+	printTableData(show:=true, extra:=""){
 		local table := NumGet(this.table+0,0,"Ptr")
 		local outstr
-		outstr:=		"Buckets: "		numget(table+0,	A_PtrSize*0+00,"ptr	")		"`n" 	; Buckets		(the address)
-					.	"tableSizes: "	numget(table+0,	A_PtrSize*1+00,"ptr	")		"`n" 	; tableSizes	(the address)
-					.	"maxLoad: "		numget(table+0,	A_PtrSize*2+00,"double")	"`n" 	; maxLoad
-					.	"length: "		numget(table+0,	A_PtrSize*2+08,"uint")  	"`n" 	; length
-					.	"numKeys: "		numget(table+0,	A_PtrSize*2+12,"uint")  	"`n" 	; numKeys
-					.	"nextLenInd: "	numget(table+0,	A_PtrSize*2+16,"uint")            	; nextLenInd
+		outstr:=		"Buckets: "		. numget(table+0,	A_PtrSize*0+00,"ptr	")		.	"`n" 	; Buckets		(the address)
+					.	"tableSizes: "	. numget(table+0,	A_PtrSize*1+00,"ptr	")		.	"`n" 	; tableSizes	(the address)
+					.	"maxLoad: "		. numget(table+0,	A_PtrSize*2+00,"double")	.	"`n" 	; maxLoad
+					.	"length: "		. numget(table+0,	A_PtrSize*2+08,"uint")  	.	"`n" 	; length
+					.	"numKeys: "		. numget(table+0,	A_PtrSize*2+12,"uint")  	.	"`n" 	; numKeys
+					.	"nextLenInd: "	. numget(table+0,	A_PtrSize*2+16,"uint")          	  	; nextLenInd
+					.	"`n`n" . extra
 		if show
 			msgbox(outstr,"Hash table data",0x40)
 		return outstr
@@ -140,15 +142,16 @@
 	; End user methods
 	; 
 	; Nested class
-	class router { ; For familliar array syntax, i.e., [value := ] myHashTable[key] [ := value]
+	; when making a new hashTable, a reference to a "router" is returned. the "router" contains the reference to the new hashTable object. See __new()
+	class router { ; For familiar array syntax, i.e., [value := ] myHashTable[key] [ := value]
 		__new(ht){
 			ObjRawSet(this,hashTable,ht)
 		}
 		__set(byref k, byref v){
-			return this[hashTable][5].call(k, "wstr", v, "Cdecl")
+			return this[hashTable,5].call(k, "wstr", v, "Cdecl")
 		}
 		__get(byref k){
-			return this[hashTable][6].call(k, "Cdecl str")
+			return this[hashTable,6].call(k, "Cdecl str")
 		}
 		__call(f, p*){
 			return this[hashTable][f](p*)
@@ -288,7 +291,7 @@
 						,8388587
 						,16777183
 						,33554393
-						,67108837
+						,67108837	; tested, 500 mb empty. 350 ms.
 						,134217689
 						,268435399
 						,536870879
@@ -359,12 +362,10 @@
 	; For forEach/Val
 	calloutFunctions:=[]
 	traversecalloutRouter(val,ind,cbid,hash,uParams){
-	; typedef int __cdecl (*calloutFn)(unsigned short*,unsigned short*,unsigned int,unsigned int,unsigned int,void*);
-	; traversecalloutRouter(key,val,ind,cbid,hash,uParams)
-		local ht,key
-		key:=this ; for clarity
-		ht:=Object(A_EventInfo)
-		return ht.calloutFunctions[cbid].call(StrGet(key), StrGet(val), ind, hash, uParams)
+		; Note: this = key. the function is only called via registercallback address. see icbfn.
+		; typedef int __cdecl (*calloutFn)(unsigned short*,unsigned short*,unsigned int,unsigned int,unsigned int,void*);
+		; traversecalloutRouter(key,val,ind,cbid,hash,uParams)
+		return object(A_EventInfo).calloutFunctions[cbid].call(StrGet(this), StrGet(val), ind, hash, uParams)
 	}
 	setUpcalloutFunctions(udfn,byref cbfn, byref cbid){ ; Used in forEach/Val
 		if type(udfn) == "Integer" 
