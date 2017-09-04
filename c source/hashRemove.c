@@ -23,7 +23,7 @@ int __cdecl hashRemove(tableData** table, pfnLib lib, unsigned short* key){
 			if (prevNode!=0)					// there was a node in the bucket before the found match
 				prevNode->next=curNode->next;
 			else 
-				(*table)->nodes[hash]=0;		// there was no other node in this bucket
+				(*table)->nodes[hash]=curNode->next;	// there was no previous node in this bucket
 			lib->pfree(curNode->key);			// free the node and its values
 			lib->pfree(curNode->val);
 			lib->pfree(curNode);
@@ -36,7 +36,7 @@ int __cdecl hashRemove(tableData** table, pfnLib lib, unsigned short* key){
 			prevNode = curNode;
 			curNode=curNode->next;
 		} else {
-			return 2;							// bucket existed, but no key found in it.
+			return 2;							// No key found in bucket.
 		}
 	}
 	return 0; // not reachable

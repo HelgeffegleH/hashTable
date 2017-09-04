@@ -20,8 +20,8 @@ tableData* __cdecl rehash(tableData** table, pfnLib lib){
 			continue;
 		do {
 			newNode=oldNode;
-			newNode->next=0;
 			oldNode=oldNode->next;
+			newNode->next=0;
 			for (k=0,p=1,hash=0; newNode->key[k]!=0;++k){		// calculate key hash in the new table
 				hash+=newNode->key[k]*p;
 				p*=31;
