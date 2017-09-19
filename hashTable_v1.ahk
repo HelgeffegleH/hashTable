@@ -94,7 +94,7 @@
 		msgbox % keyBytes+valBytes
 		return keyBytes+valBytes								; return number of bytes in the added data. (only includes key/val bytes)
 	}
-	copyFromHashTable(ht){
+	copyFrom(ht){
 		; Adds all key value pairs in hashTable ht, to "this"
 		/*
 		typedef struct copyParams {
@@ -174,6 +174,10 @@
 	makeNotPersistent(){
 		; Unflag the table as persistent.
 		return this._isPersistent:=false 						; keep path
+	}
+	getPath(){
+		; Returns the path of a persistent table
+		return this.path
 	}
 	_isPersistent:=false
 	isPersistent(){
