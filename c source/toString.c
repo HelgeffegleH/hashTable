@@ -25,12 +25,14 @@ int __cdecl toString(unsigned short* key, unsigned short* val, unsigned int i, u
 	unsigned short* reBuf;
 	unsigned int keylen=0;
 	unsigned int vallen=0;
-	if (p->what<2)
+	if (p->what<2) {
 		while (key[keylen++]); 
-			keylen--;
-	if (p->what!=1)
+		keylen--;
+	}
+	if (p->what!=1) {
 		while (val[vallen++]); 
-			vallen--;
+		vallen--;
+	}
 	int minlen = p->o+keylen+vallen+p->dellen1+p->dellen2;
 	if (minlen >= p->len){
 		p->len = minlen*2;
