@@ -15,7 +15,7 @@
 	clone(){
 		; Use: clonedHt := ht.clone()
 		local clone := this[14].call()
-		return new hashTable(this.length(), clone)
+		return new hashTable(this.length(),, clone)
 	}
 	forEach(udfn,uParams:=0){
 		; accepts function name, func / bound func obj.
