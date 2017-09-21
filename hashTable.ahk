@@ -502,7 +502,7 @@ class hashTable{
 	; Memory functions
 	freeAllBins(){
 		; Probably never wanted.
-		loop 16
+		loop 18
 			hashTable.globalFree(hashTable[A_Index])
 		return
 	}
@@ -514,10 +514,10 @@ class hashTable{
 	globalAlloc(dwBytes){
 		; URL:
 		;	- https://msdn.microsoft.com/en-us/library/windows/desktop/aa366574(v=vs.85).aspx (GlobalAlloc function)
-		static GMEM_ZEROINIT:=0x0040	; Zero fill memory
-		static uFlags:=GMEM_ZEROINIT	; For clarity.
+		;static GMEM_ZEROINIT:=0x0040	; Zero fill memory
+		;static uFlags:=GMEM_ZEROINIT	; For clarity.
 		local hMem
-		if !(hMem:=DllCall("Kernel32.dll\GlobalAlloc", "Uint", uFlags, "Ptr", dwBytes, "Ptr"))
+		if !(hMem:=DllCall("Kernel32.dll\GlobalAlloc", "Uint", 0x0040, "Ptr", dwBytes, "Ptr"))
 			throw exception("GlobalAlloc failed for dwBytes: " dwBytes, -2)
 		return hMem
 	}
