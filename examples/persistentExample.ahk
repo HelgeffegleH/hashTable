@@ -2,7 +2,9 @@
 ; This example is not available for v1.
 #include ..\hashTable.ahk
 
-ht:=new hashTable(,"exampleTable")	; Specifying a path (name) for the table
+ht:=new hashTable(,"exampleTable")	; Specifying a path (name) for the table, is all it takes to make it persistent.
+									; Nothing else in this code is required to make a persistent table.
+									
 if !ht.loadedFromFile(){			; The first time this codes runs, the file doesn't exist, hence the table is not loaded from file.
 	msgbox("New table created!","Hash table example", 0x40)				
 	ht["Hello"]:= "and welcome"		; Adding a key value/pair to the new table
@@ -29,12 +31,11 @@ addToHt(ht, btn){
 	setTimer(f,-1)
 }
 deleteFromDisk(ht){
-	if ht.deletePersistentFile(){
-		ht.makeNotPersistent()
+	if ht.deletePersistentFile()
 		msgbox("File deleted!","Hash table example", 0x40)
-	} else {
+	else
 		msgbox("File not deleted!","Hash table example", 0x10)
-	}
+	ht.makeNotPersistent()
 	return
 }
 guiClose(hgui){
