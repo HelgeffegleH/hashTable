@@ -91,7 +91,6 @@
 		this.checkIfNeedRehash(nKeys)
 		if !this[15].call(&keyBuf, "ptr", &valBuf, "uint", nKeys, "Cdecl")	; add to table, addNullDel.c
 			return 0
-		msgbox % keyBytes+valBytes
 		return keyBytes+valBytes								; return number of bytes in the added data. (only includes key/val bytes)
 	}
 	copyFrom(ht){
