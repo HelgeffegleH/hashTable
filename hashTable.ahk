@@ -161,7 +161,7 @@ class hashTable{
 		; Deletes the file in this.path
 		; Note: you should also call makeNotPersistent() if you do not want the table to be saved when exiting the script
 		; Returns true on successful deletion.
-		return fileExist(this.path) ? !fileDelete(this.path) : false
+		return fileExist(this.path) ? fileDelete(this.path) : false
 	}
 	makePersistent(path:=0){
 		; Specify a path / file name where the table will be saved upon release.
