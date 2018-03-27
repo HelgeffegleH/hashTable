@@ -5,6 +5,7 @@
 ; Note: to abort, use esc::exitapp()
 
 #include ..\hashTable.ahk
+randomSeed(3737)
 N:=100000				; Number of key value pairs. Default test case is 100000. Benefits for hashTable can start at around 5000 pairs.
 result:=""
 makestr(keyvals,N)	; Makes N random words, "`n" - delimited.
@@ -107,7 +108,7 @@ t2:=QPC()
 result.= "Ahk array self time:`t`t" round(t2-t1,p) "ms.`n"
 
 t1:=QPC()
-ht.forEach(registerCallback("forLoop","cdecl fast"))
+ht.forEach(callbackcreate("forLoop","cdecl fast"))
 t2:=QPC()
 result.= "Hash table forEach:`t`t" round(t2-t1,p) "ms.`n"
 result.= "`nhasVal()`n`n"
@@ -177,7 +178,7 @@ rndstr(n,min:=1,max:=65535){
 QPC() { ; microseconds precision ; borrowed from wolf_II 
 ;-------------------------------------------------------------------------------
     static Freq, init := DllCall("QueryPerformanceFrequency", "Int64P", Freq)
-
+	local Count
     DllCall("QueryPerformanceCounter", "Int64P", Count)
     Return (Count / Freq)*1000
 }
