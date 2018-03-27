@@ -21,7 +21,7 @@ class hashTable{
 	}
 	forEach(udfn,uParams:=0){
 		; accepts function name, func / bound func obj.
-		; binary code address, eg registercallback("f", "cdecl fast") <- cdecl needed on 32bit ahk. Fast option recommended if ok.
+		; binary code address, eg callbackcreate("f", "cdecl fast") <- cdecl needed on 32bit ahk. Fast option recommended if ok.
 		local cbid,r,cbfn
 		this.setUpcalloutFunctions(udfn, cbfn, cbid)
 		r:=this[8].call(cbfn, "uint", cbid, "Ptr", uParams, "cdecl")
@@ -36,21 +36,21 @@ class hashTable{
 		return r
 	}
 	count(){
-		local table := NumGet(this.table+0,0,"Ptr")
-		return numget(table+0,	A_PtrSize*2+12,"uint")
+		local table := NumGet(this.table,0,"Ptr")
+		return numget(table,	A_PtrSize*2+12,"uint")
 	}
 	length(){
 		local table := NumGet(this.table+0,0,"Ptr")
-		return numget(table+0,	A_PtrSize*2+08,"uint")
+		return numget(table,	A_PtrSize*2+08,"uint")
 	}
 	getMaxload(){
 		return this.maxLoad
 	}
 	setMaxload(newMax){
 		local prevLoad
-		local table := NumGet(this.table+0,0,"Ptr")
+		local table := NumGet(this.table,0,"Ptr")
 		prevLoad := this.getMaxload()
-		numput(newMax, table+0,	A_PtrSize*2,"double")
+		numput(newMax, table,	A_PtrSize*2,"double")
 		this.maxLoad:=newMax
 		return prevLoad
 	}
@@ -144,15 +144,15 @@ class hashTable{
 		; "Manual" rehash. Typical usage, when removed many values, shrink the table.
 		local newTable
 		local prevLength:=this.length()
-		local table := NumGet(this.table+0,0,"Ptr")
+		local table := NumGet(this.table,0,"Ptr")
 		if newLength==0
 			newLength:= (this.count() / this.maxLoad) * 2 	; If new length is 0, choose the new length to be half way from reaching the maxLoad.
 		if newLength == prevLength							; No need to rehash if already at desired length
 			return prevLength
 		this.initSize(newLength)
-		numput(this.nextSize-1, table+0, A_PtrSize*2+16,"uint")
+		numput(this.nextSize-1, table, A_PtrSize*2+16,"uint")
 		newTable:=this[3].call()	; rehash.
-		NumPut(newTable, this.table+0, 0, "Ptr")
+		NumPut(newTable, this.table, 0, "Ptr")
 		this.size:=this.length()	; not really needed.
 		return this.size
 	}
@@ -215,14 +215,14 @@ class hashTable{
 	}
 	; Print tableData struct.
 	printTableData(show:=true, extra:=""){
-		local table := NumGet(this.table+0,0,"Ptr")
+		local table := NumGet(this.table,0,"Ptr")
 		local outstr
-		outstr:=		"Buckets: "		. numget(table+0,	A_PtrSize*0+00,"ptr	")		.	"`n" 	; Buckets		(the address)
-					.	"tableSizes: "	. numget(table+0,	A_PtrSize*1+00,"ptr	")		.	"`n" 	; tableSizes	(the address)
-					.	"maxLoad: "		. numget(table+0,	A_PtrSize*2+00,"double")	.	"`n" 	; maxLoad
-					.	"length: "		. numget(table+0,	A_PtrSize*2+08,"uint")  	.	"`n" 	; length
-					.	"numKeys: "		. numget(table+0,	A_PtrSize*2+12,"uint")  	.	"`n" 	; numKeys
-					.	"nextLenInd: "	. numget(table+0,	A_PtrSize*2+16,"uint")          	  	; nextLenInd
+		outstr:=		"Buckets: "		. numget(table,	A_PtrSize*0+00,"ptr	")		.	"`n" 	; Buckets		(the address)
+					.	"tableSizes: "	. numget(table,	A_PtrSize*1+00,"ptr	")		.	"`n" 	; tableSizes	(the address)
+					.	"maxLoad: "		. numget(table,	A_PtrSize*2+00,"double")	.	"`n" 	; maxLoad
+					.	"length: "		. numget(table,	A_PtrSize*2+08,"uint")  	.	"`n" 	; length
+					.	"numKeys: "		. numget(table,	A_PtrSize*2+12,"uint")  	.	"`n" 	; numKeys
+					.	"nextLenInd: "	. numget(table,	A_PtrSize*2+16,"uint")          	  	; nextLenInd
 					.	"`n`n" . extra
 		if show
 			msgbox(outstr,"Hash table data",0x40)
@@ -259,7 +259,7 @@ class hashTable{
 		; The clone parameter is intended only for internal use. When cloning a hash table.
 		if !hashTable.init
 			hashTable.initBin(),hashTable.makeFnLib()
-		this.icbfn:=registercallback(this.traversecalloutRouter,"cdecl Fast",6,&this)	
+		this.icbfn:=callbackcreate(this.traversecalloutRouter.bind(this),"cdecl Fast",6)	
 		this.initSize(size)
 		this.initTable(clone)
 		this.initBoundFuncs()
@@ -338,7 +338,7 @@ class hashTable{
 	}
 	initTable(clone:=0){
 		this.table:=this.globalAlloc(A_PtrSize)
-		NumPut(clone ? clone : this.newTable(this.size), this.table+0, 0, "Ptr")
+		NumPut(clone ? clone : this.newTable(this.size), this.table, 0, "Ptr")
 		return
 	}
 	initBoundFuncs(){
@@ -425,7 +425,7 @@ class hashTable{
 		local tableSizes, k, sz
 		tableSizes := hashTable.globalAlloc(this.arraySizes.length()*4)
 		for k, sz in hashTable.arraySizes
-			NumPut(sz, tableSizes+0,(k-1)*4, "int")
+			NumPut(sz, tableSizes,(k-1)*4, "int")
 		hashTable.tableSizes:=tableSizes
 		return
 	}
@@ -445,12 +445,12 @@ class hashTable{
 		local fnLib := hashTable.globalAlloc(5*A_PtrSize) ; Set to 6*A_PtrSize when using db.  Can be freed via freeFnLib() (you shouldn't)
 		local pmalloc:=DllCall("Kernel32.dll\GetProcAddress", "Ptr", DllCall("Kernel32.dll\GetModuleHandle", "Str", "MSVCRT.dll", "Ptr"), "AStr", "malloc", "Ptr")
 		local pfree:=DllCall("Kernel32.dll\GetProcAddress", "Ptr", DllCall("Kernel32.dll\GetModuleHandle", "Str", "MSVCRT.dll", "Ptr"), "AStr", "free", "Ptr")
-		NumPut(pmalloc,					fnLib+0, A_PtrSize*0, "Ptr")
-		NumPut(pfree,					fnLib+0, A_PtrSize*1, "Ptr")
-		NumPut(hashTable[7],			fnLib+0, A_PtrSize*2, "Ptr")
-		NumPut(hashTable[3],			fnLib+0, A_PtrSize*3, "Ptr")
-		NumPut(hashTable[1], 			fnLib+0, A_PtrSize*4, "Ptr")
-		;NumPut(registercallback("mb","Cdecl"), 	fnLib+0, A_PtrSize*5, "Ptr") ; db
+		NumPut(pmalloc,					fnLib, A_PtrSize*0, "Ptr")
+		NumPut(pfree,					fnLib, A_PtrSize*1, "Ptr")
+		NumPut(hashTable[7],			fnLib, A_PtrSize*2, "Ptr")
+		NumPut(hashTable[3],			fnLib, A_PtrSize*3, "Ptr")
+		NumPut(hashTable[1], 			fnLib, A_PtrSize*4, "Ptr")
+		;NumPut(callbackcreate("mb","Cdecl"), 	fnLib, A_PtrSize*5, "Ptr") ; db
 		hashTable.fnLib:=fnLib
 		return
 	}
@@ -483,18 +483,17 @@ class hashTable{
 	}
 	; For forEach/Val
 	calloutFunctions:=[]
-	traversecalloutRouter(val,ind,cbid,hash,uParams){
-		; Note: this = key. the function is only called via registercallback address. see icbfn.
+	traversecalloutRouter(key,val,ind,cbid,hash,uParams){
 		; typedef int __cdecl (*calloutFn)(unsigned short*,unsigned short*,unsigned int,unsigned int,unsigned int,void*);
 		; traversecalloutRouter(key,val,ind,cbid,hash,uParams)
-		return object(A_EventInfo).calloutFunctions[cbid].call(StrGet(this), StrGet(val), ind, hash, uParams)
+		return this.calloutFunctions[cbid].call(StrGet(key), StrGet(val), ind, hash, uParams)
 	}
 	setUpcalloutFunctions(udfn,byref cbfn, byref cbid){ ; Used in forEach/Val
 		if type(udfn) == "Integer" 
 			cbfn:=udfn
 		else
 			cbfn:=this.icbfn
-		if isFunc(udfn) && !isObject(udfn)
+		if !isObject(udfn) && isFunc(udfn)
 			udfn:=func(udfn)
 		cbid:=this.calloutFunctions.push(udfn)
 		return 
@@ -542,7 +541,7 @@ class hashTable{
 		this.wasFreed:=true
 		this[2].call()					; pdestroy
 		this.globalFree(this.table)
-		this.globalFree(this.icbfn)
+		callbackfree(this.icbfn)
 	}
 	; Internal toTree and toString methods.
 	_toTree(tv,parents,key,val,i,h,uParams){
@@ -605,7 +604,9 @@ class hashTable{
 		if !bin	; note, using "this" here because needs to be able to access rawPut if hashTable has been deleted, typically after exitApp()
 			bin := this.rawPut(A_PtrSize == 4 	? [3526448981,3968029526,611617580,612141908,608996164,608602944,2298607747,252978244,36750,2311074048,666668534,0,747488137,21007616,1199342438,4034199806,405040265,2333625995,3355515974,18892291,1003487704,2198803526,132,337935491,252087041,44942,609520384,1208257816,69500041,2300839049,4278723668,1577259094,541494040,1586085889,608471320,138840840,69485705,76351115,604277080,2333103871,1174478918,112664,3296919552,1600019244,3263808349,1711358605,4265704579,2213770496,18097276,4284187919,1153957887,6180,3677421568,4294929385,649367039,0,3238005901,1418265312,1317608484,608471316,2298907396,1459561476,1958774028,609127288,1418397321,1284054052,2088965156,2332103716,2400131150,4294967121,2299669645,2333353044,2369791060,1820936196,1418266660,76088356,274136868,2333886091,51651668,3221297238,2300073609,2332566596,1149830214,109773860,2303722637,1459561476,474909456,52709003,4169341006,407800065,4282156047,109838335,4294898921,3921687039,4294967086,2425393296] 
 												: [1465209921,2202555222,2336760044,829957236,3431549439,2346027336,4186126414,829718017,2298670043,2379778515,2204500307,17788,1452011893,809929516,1174654977,30933300,675691512,4186139251,109791233,8949263,2370043904,2370312964,2303217676,542572522,53757579,2336762974,2370048086,2336751620,744392966,1477217608,2334152447,1174484038,112684,2202533888,1583030468,1547787615,2312604099,22515192,1015234918,4050976836,251787651,4294932101,3957010943,2035589,1207964813,1451822731,2232716584,0,1209554687,1484046469,1211649675,1451951753,33129260,4286091023,2370109439,2370322180,2303479820,542572514,53495435,2336763006,2370046038,2336751620,746490118,2014088520,2334152447,1183526998,743834424,2298607747,2215586902,4294967150,3909520200,4294967090,1609154609,2432696319,2425393296,2425393296])
+
 			; bin is toString.c
+		
 		local r := this.forEach(bin, &uParams)	; For loop.			
 		
 		local buf:=numget(&uParams,"ptr")
@@ -633,8 +634,6 @@ class hashTable{
 			; Making this ugly improves performance. (a lot)
 			static hash, n
 			static dummy 	:= varSetCapacity(hash, 4) + varSetCapacity(n, 4)
-			static phash	:= &hash
-			static pn 		:= &n
 			static ps		:= a_ptrsize
 			static ps2		:= a_ptrsize*2
 			static ps2_8	:= ps2+8
@@ -647,8 +646,8 @@ class hashTable{
 									, "cdecl ptr"))												; if node!=0, return true and set key and val
 									? (k			  := strget(numget(node+ps, "ptr"))			; set key
 									 , (isbyref(v)? v := strget(numget(node+ps2, "ptr")):"")	; set val
-									 , this[3]		  := numget(phash, "uint")					; update this.hash (this[3])
-									 , this[2]		  := numget(pn, "uint")						; update this.n (this[2])
+									 , this[3]		  := numget(hash, "uint")					; update this.hash (this[3])
+									 , this[2]		  := numget(n, "uint")						; update this.n (this[2])
 									 , 1)														; return true
 									:  0														; else return false
 		}
