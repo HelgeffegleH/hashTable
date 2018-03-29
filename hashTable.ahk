@@ -76,16 +76,16 @@ class hashTable{
 		try
 			keyBytes := fo.readuint()							; Read length of keyBuf, in bytes
 		catch error
-			throw error
+			throw (fo.close(), error)
 		try
 			nKeys := fo.readuint()								; get number of key/value pairs
 		catch error
-			throw error
+			throw (fo.close(), error)
 		success := keyBytes == fo.rawRead(keyBuf,keyBytes)		; read the keys
 		try
 			valBytes := fo.readuint()							; Read length of valBuf, in bytes
 		catch error
-			throw error
+			throw (fo.close(), error)
 		success *= valBytes == fo.rawRead(valBuf,valBytes)		; read the values
 		fo.close()
 		if !success
@@ -152,6 +152,11 @@ class hashTable{
 		this.initSize(newLength)
 		numput(this.nextSize-1, table, A_PtrSize*2+16,"uint")
 		newTable:=this[3].call()	; rehash.
+		if !newTable {
+			this.initSize(prevLength) ; updates this.nextSize
+			numput(this.nextSize, table+0, A_PtrSize*2+16,"uint")
+			throw exception("Rehash failed. New length: " newLength)
+		}
 		NumPut(newTable, this.table, 0, "Ptr")
 		this.size:=this.length()	; not really needed.
 		return this.size
