@@ -3,7 +3,7 @@
 class hashTable{
 	; User methods
 	hasKey(byref k){
-		return this[6].call(k, "Cdecl ptr") ? true : false
+		return this[6].call(k, "cdecl ptr") ? true : false
 	}
 	hasVal(byref v){
 		return this[9].call(v, "cdecl ptr") ? true : false
@@ -12,7 +12,7 @@ class hashTable{
 		return this[9].call(v, "cdecl str")
 	}
 	delete(byref k){
-		return this[4].call(k, "Cdecl")
+		return this[4].call(k, "cdecl")
 	}
 	clone(){
 		; Use: clonedHt := ht.clone()
@@ -236,27 +236,7 @@ class hashTable{
 	;
 	; End user methods
 	; 
-	; Nested class
 	; when making a new hashTable, a reference to a "router" is returned. the "router" contains the reference to the new hashTable object. See __new()
-	class router { ; For familiar array syntax, i.e., [value := ] myHashTable[key] [ := value]
-		__new(ht){
-			ObjRawSet(this,hashTable,ht)
-		}
-		__set(byref k, byref v){
-			this[hashTable,5].call(k, "wstr", v, "Cdecl")
-			return v
-		}
-		__get(byref k){
-			return this[hashTable,6].call(k, "Cdecl str")
-		}
-		__call(f, p*){
-			return this[hashTable][f](p*)
-		}
-		__delete(){
-			static ht:=hashTable	; Because needs to call destroy() for persistent tables even if hashTable has been deleted.
-			this[ht].destroy()
-		}
-	}
 	; Init methods. Most init methods are called by __new. NOTE: There is "static" init in maketableSizesArray()
 	static init:= false
 	maxLoad:=0.7
@@ -269,8 +249,31 @@ class hashTable{
 		this.initTable(clone)
 		this.initBoundFuncs()
 		this.loadFromFileIfPersistent(path)
-		return new hashTable.router(this) ; returns a "router" object, which has a reference to the new hashTable. Use all methods on the returned router object.
+		return this.createRouter() ; returns a "router" object, which has a reference to the new hashTable. Use all methods on the returned router object.
 	}
+	createRouterA(){ ; This is left only as a reminder to the author of this code.
+	}
+	createRouter(){ ; For familiar array syntax, i.e., [value := ] myHashTable[key] [ := value]
+		local
+		global hashTable
+		; 'this' is the new hashTable
+		; Free variables, 'this' is also a free variable
+		put := hashTable[5]		; set
+		get := hashTable[6]	
+		ptable := this.table	; pointer to the table
+		pfnLib:=hashTable.fnLib	; fuction lib
+		; Router object for setting and getting key value pairs and calling methods of the hash table. All methods are closures. Slightly improves performance over bound funcs.
+		router := []
+		router.base :=	{	; 'self' will refer to the router object
+							__set 		: (self, byref k, byref v) 	=>  (dllcall(put, "ptr", ptable, "ptr", pfnLib, "ptr", &k, "str", v, "cdecl"), v),
+							__get 		: (self, byref k) 			=>	dllcall(get, "ptr", ptable, "ptr", pfnLib, "ptr", &k, "ptr", "cdecl wstr"),
+							__delete	: (self)					=>	this.destroy(),
+							_newEnum	: (self)					=>	this._newEnum(self),
+							base 		: {__call : (self, f, p*) 	=>	this[f](p*)}	; Ensures 'newEnum' is not passed to __call. Needed since the router needs to be passed to _newenum, see _newEnum
+						}
+		return router
+	}
+	
 	loadFromFileIfPersistent(path){
 		if path && fileExist(path)
 			this.addFromFile(path), this._loadedFromFile:=true	; The file exists, load
@@ -366,24 +369,25 @@ class hashTable{
 		;	getFromHash	(17)	(enum)
 		;	next 		(18)	(enum)
 		; 
-		this[2] 	:= func("dllCall").bind(hashTable[2],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Cdecl")															; destroy
-		this[3] 	:= func("dllCall").bind(hashTable[3],  "Ptr", this.table, "Ptr", hashTable.fnLib, "Cdecl Ptr")														; rehash
-		this[4]		:= func("dllCall").bind(hashTable[4],  "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; , key, "Cdecl")								; remove
-		this[5]		:= func("dllCall").bind(hashTable[5],  "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; , key, "wstr", val, "Cdecl")					; put
-		this[6]		:= func("dllCall").bind(hashTable[6],  "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; , key, "Cdecl str")							; get
+		this[2] 	:= bind(2, "Cdecl")															; destroy
+		this[3] 	:= bind(3, "Cdecl Ptr")														; rehash
+		this[4]		:= bind(4, "wstr") 			; , key, "Cdecl")								; remove
+		this[5]		:= bind(5, "ptr") 			; , key, "wstr", val, "Cdecl")					; put
+		this[6]		:= bind(6, "wstr") 			; , key, "Cdecl str")							; get
 		; 7
-		this[8]		:= func("dllCall").bind(hashTable[8],  "Ptr", this.table, "Ptr", hashTable.fnLib, "ptr") 			; this.icbfn/udfn, "uint", cbid,"ptr",uParams, "Cdecl")		; traverse
-		this[9]		:= func("dllCall").bind(hashTable[9],  "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; val, "Cdecl ptr")								; findVal
-		this[10]	:= func("dllCall").bind(hashTable[10], "Ptr", this.table, "Ptr", hashTable.fnLib) 					; "wstr", keys, "wstr", vals, "wstr", del,"Cdecl")	; multPut
-		this[11]	:= func("dllCall").bind(hashTable[11], "Ptr", this.table, "Ptr", hashTable.fnLib) 					; "wstr", keys, "wstr", vals, "wstr", del,"Cdecl")	; multPutConstVal
-		this[12]	:= func("dllCall").bind(hashTable[12], "Ptr", this.table, "Ptr", hashTable.fnLib) 					; "wstr", keys, "wstr", vals, "int", constVal, "Cdecl")	; multPutNoDel
-		this[13]	:= func("dllCall").bind(hashTable[13], "Ptr", this.table, "Ptr", hashTable.fnLib, "wstr") 			; val, "ptr", this.icbfn/udfn, "uint", cbid,"ptr",uParams, "Cdecl")		; forEachVal
-		this[14] 	:= func("dllCall").bind(hashTable[14], "Ptr", this.table, "Ptr", hashTable.fnLib, "Cdecl Ptr")														; clone
-		this[15] 	:= func("dllCall").bind(hashTable[15], "Ptr", this.table, "Ptr", hashTable.fnLib, "ptr")			; keys, "ptr", vals, "uint", nKeys, "Cdecl")	; addNullDel
+		this[8]		:= bind(8, "ptr") 			; this.icbfn/udfn, "uint", cbid,"ptr",uParams, "Cdecl")		; traverse
+		this[9]		:= bind(9, "wstr") 			; val, "Cdecl ptr")								; findVal
+		this[10]	:= bind(10) 				; "wstr", keys, "wstr", vals, "wstr", del,"Cdecl")	; multPut
+		this[11]	:= bind(11) 				; "wstr", keys, "wstr", vals, "wstr", del,"Cdecl")	; multPutConstVal
+		this[12]	:= bind(12) 				; "wstr", keys, "wstr", vals, "int", constVal, "Cdecl")	; multPutNoDel
+		this[13]	:= bind(13, "wstr")			; val, "ptr", this.icbfn/udfn, "uint", cbid,"ptr",uParams, "Cdecl")		; forEachVal
+		this[14] 	:= bind(14, "Cdecl Ptr")	; clone
+		this[15] 	:= bind(15, "ptr")			; keys, "ptr", vals, "uint", nKeys, "Cdecl")	; addNullDel
 		; 16
 		; 17
 		this[18]	:= func("dllCall").bind(hashTable[18], "ptr")
 		return
+		bind(n, p*) => func("dllCall").bind(hashTable[ n ], "Ptr", this.table, "Ptr", hashTable.fnLib, p*)
 	}
 	newTable(sz){ ; Called by initTable()
 		static pmalloc:=DllCall("Kernel32.dll\GetProcAddress", "Ptr", DllCall("Kernel32.dll\GetModuleHandle", "Str", "MSVCRT.dll", "Ptr"), "AStr", "malloc", "Ptr")
@@ -626,35 +630,38 @@ class hashTable{
 			this.free(buf)
 		return str
 	}
-	_newEnum(){
-		return new hashTable.enum(this)
-	}
-	class enum {
-		__new(r){									
-			this[1]:=r		; reference 					
-			this[2]:=1		; get n:th node in bucket hash 
-			this[3]:=0		; "bucket"						
-		}
-		next(byref k, byref v:=""){
-			; Making this ugly improves performance. (a lot)
-			static hash, n
-			static dummy 	:= varSetCapacity(hash, 4) + varSetCapacity(n, 4)
-			static ps		:= a_ptrsize
-			static ps2		:= a_ptrsize*2
-			static ps2_8	:= ps2+8
-			local node
-			return (node := dllcall(hashTable[18]	
-									, "ptr", this[1].table										; tableData** table
-									, "ptr", numput(this[3], hash, "uint")						; uint* hash		note: numput returns the "wrong" address, compiled code does hash-=1 (uint)
-									, "ptr", numput(this[2], n, "uint")							; uint* n			note: as above for n-=1
-									, "ptr", hashTable[17] 										; pgetFromHash
-									, "cdecl ptr"))												; if node!=0, return true and set key and val
-									? (k			  := strget(numget(node+ps, "ptr"))			; set key
-									 , (isbyref(v)? v := strget(numget(node+ps2, "ptr")):"")	; set val
-									 , this[3]		  := numget(hash, "uint")					; update this.hash (this[3])
-									 , this[2]		  := numget(n, "uint")						; update this.n (this[2])
-									 , 1)														; return true
-									:  0														; else return false
-		}
+	_newEnum(router){
+		; router is passed only to increment its reference count to ensure the table is not destroyed during the loop.
+		; The enumerator decrements the count on its release.
+		; see createRouter() for details on the router object.
+		static ps		:= a_ptrsize
+		static ps2		:= a_ptrsize*2
+		local
+		global hashTable
+		; free vars
+		varSetCapacity hash, 4
+		varSetCapacity n, 4
+		table := this.table
+		nthNode := 1
+		bucket := 0
+		pgetFromHash := hashTable[17]
+		pnext := hashTable[18]
+		objaddref thisptr := &router	; the enumerator will decrement the reference count when released.
+		next(self, byref k, byref v := "") => (node := dllcall(pnext	
+										, "ptr", table												; tableData** table
+										, "ptr", numput(nthNode, hash, "uint")						; uint* hash		note: numput returns the "wrong" address, compiled code does hash-=1 (uint)
+										, "ptr", numput(bucket, n, "uint")							; uint* n			note: as above for n-=1
+										, "ptr", pgetFromHash 										; pgetFromHash
+										, "cdecl ptr"))												; if node!=0, return true and set key and val
+										? (k			  := strget(numget(node+ps, "ptr"))			; set key
+										, (isbyref(v)? v  := strget(numget(node+ps2, "ptr")):"")	; set val
+										, nthNode		  := numget(hash, "uint")					; update nthNode
+										, bucket		  := numget(n, "uint")						; update bucket
+										, true)														; return true
+										: false														; else return false
+		return	{ 	; The enumerator object
+					next : func("next"),
+					base : { __delete : (self) => objrelease(thisptr) }	; decrement the ref. count for the router on release.
+				}
 	}
 }
