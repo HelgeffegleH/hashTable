@@ -54,7 +54,8 @@ class hashTable{
 		this.maxLoad:=newMax
 		return prevLoad
 	}
-	splitAdd(keys,vals, del:="`n",constVal:=false,isByref:=false){
+	splitAdd(keys,vals, del:="`n",constVal:=false){
+		local isByref := type(keys) == "Integer" && type(vals) == "Integer"
 		if del == ""
 			return this.splitAddNoDel(keys,vals,constVal,isByref)
 		if isByref ; For very large input, pass keys and vals by address and specify true. Improves performance.

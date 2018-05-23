@@ -5,6 +5,7 @@
 ; Note: to abort, use esc::exitapp()
 
 #include ..\hashTable.ahk
+
 randomSeed(3737)
 N:=100000				; Number of key value pairs. Default test case is 100000. Benefits for hashTable can start at around 5000 pairs.
 result:=""
@@ -44,7 +45,7 @@ result.= "Ahk array sorted`t`t" round(t2-t1,p) "ms.`n"
 
 ht := new hashTable()
 t1:=QPC()
-ht.splitAdd(&keyvals,&keyvals,"`n",,isByref:=true)
+ht.splitAdd(&keyvals,&keyvals,"`n")
 t2:=QPC()
 result.= "Hash table splitAdd`t`t" round(t2-t1,p) "ms.`n"
 
@@ -61,7 +62,7 @@ if addInLoop
 	loop parse, moreKeyVals, "`n"
 		ht[A_LoopField] := A_LoopField
 else
-	ht.splitAdd(&moreKeyVals, &moreKeyVals, "`n",,true)
+	ht.splitAdd(&moreKeyVals, &moreKeyVals, "`n")
 t2:=QPC()
 result.= "Hash table" (addInLoop?"":" (splitAdd)") "`t`t" round(t2-t1,p) "ms.`n"
 moreKeyVals:=sort(moreKeyVals)	; Great benefit
