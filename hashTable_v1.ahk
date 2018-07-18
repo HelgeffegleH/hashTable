@@ -71,19 +71,20 @@
 		local fo := fileOpen(path,"r")
 		if !fo
 			throw exception("failed to open file: " path)
+		fo.seek(0)												; in case initial bytes match a byte order mark.
 		try
 			keyBytes := fo.readuint()							; Read length of keyBuf, in bytes
 		catch error
-			throw (fo.close(), error)
+			throw (error, fo.close())
 		try
 			nKeys := fo.readuint()								; get number of key/value pairs
 		catch error
-			throw (fo.close(), error)
+			throw (error, fo.close())
 		success := keyBytes == fo.rawRead(keyBuf,keyBytes)		; read the keys
 		try
 			valBytes := fo.readuint()							; Read length of valBuf, in bytes
 		catch error
-			throw (fo.close(), error)
+			throw (error, fo.close())
 		success *= valBytes == fo.rawRead(valBuf,valBytes)		; read the values
 		fo.close()
 		if !success
