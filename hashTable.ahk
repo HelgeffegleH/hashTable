@@ -74,6 +74,7 @@ class hashTable{
 		local fo := fileOpen(path,"r")
 		if !fo
 			throw exception("failed to open file: " path)
+		fo.seek 0												; in case initial bytes match a byte order mark.
 		try
 			keyBytes := fo.readuint()							; Read length of keyBuf, in bytes
 		catch error
